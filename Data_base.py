@@ -46,7 +46,7 @@ class Database():
                             ID_Contratante INTEGER NOT NULL,
                             Nome TEXT NOT NULL,
                             Sobrenome TEXT NOT NULL,
-                            DataNascimento TEXT NOT NULL,
+                            Data_Nascimento TEXT NOT NULL,
                             FOREIGN KEY (ID_Contratante) REFERENCES Contratantes(ID) ON DELETE CASCADE
                         );
                     """)
@@ -61,14 +61,11 @@ class Database():
                     cursor.execute("""
                         CREATE TABLE IF NOT EXISTS Contratos(
                             ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                            CTR TEXT NOT NULL UNIQUE CHECK(LENGTH(CTR) BETWEEN 3 AND 5),
-                            ID_Aluno INTEGER,
+                            CTR TEXT NOT NULL CHECK(LENGTH(CTR) BETWEEN 3 AND 5),
+                            ID_Aluno INTEGER NOT NULL,
                             Valor REAL NOT NULL,
-                            Taxa_matricula INT,
+                            Taxa_Matricula REAL,
                             Duracao INT NOT NULL,
-                            Inicio TEXT NOT NULL,
-                            Fim TEXT,
-                            Status TEXT NOT NULL CHECK(Status IN ('Ativo', 'Cancelado', 'Suspenso', 'Encerrado')),
                             FOREIGN KEY (ID_Aluno) REFERENCES Estudantes(ID) ON DELETE CASCADE
                         );
                     """)
@@ -83,8 +80,9 @@ class Database():
                     cursor.execute("""
                         CREATE TABLE IF NOT EXISTS Classes(
                             ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                            Dia TEXT UNIQUE NOT NULL,
-                            Hora TEXT UNIQUE NOT NULL
+                            Professor TEXT NOT NULL,
+                            Dia TEXT NOT NULL,
+                            Hora TEXT NOT NULL
                         );
                     """)
                 conn.commit()
@@ -98,7 +96,7 @@ class Database():
                     cursor.execute("""
                         CREATE TABLE IF NOT EXISTS Servicos(
                             ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                            ID_Contrato INTEGER,
+                            ID_Contrato INTEGER NOT NULL,
                             Curso TEXT NOT NULL,
                             FOREIGN KEY (ID_Contrato) REFERENCES Contratos(ID) ON DELETE CASCADE
                         );
@@ -106,6 +104,23 @@ class Database():
                 conn.commit()
         except Error as e:
             print(f"Erro create_servicos_table: {e}")
+
+    def create_vigencias_table(self):
+        try:
+            with closing(self._with_conn()) as conn:
+                with closing(conn.cursor()) as cursor:
+                    cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS Vigencias(
+                            ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                            ID_Servico INTEGER NOT NULL,
+                            Data_Inicio TEXT NOT NULL,
+                            Data_Fim TEXT NOT NULL,
+                            Status TEXT NOT NULL CHECK(Status IN ('Ativo', 'Cancelado', 'Suspenso', 'Encerrado', 'Renovado')),
+                            FOREIGN KEY (ID_Servico) REFERENCES Servicos(ID) ON DELETE CASCADE
+                        );
+                    """)
+        except Error as e:
+            print(f"Erro create_vigencias_table: {e}")
 
     def create_agenda_table(self):
         try:
@@ -116,8 +131,9 @@ class Database():
                             ID INTEGER PRIMARY KEY AUTOINCREMENT,
                             ID_Servico INTEGER NOT NULL,
                             ID_Classe INTEGER NOT NULL,
-                            Fim TEXT,
-                            Status TEXT NOT NULL CHECK(Status IN ('Ativo', 'Cancelado', 'Suspenso', 'Encerrado', 'Transferido')),
+                            Data_Entrada TEXT NOT NULL,
+                            Data_Saida TEXT NOT NULL,
+                            Status TEXT NOT NULL CHECK(Status IN ('Ativo', 'Removido', 'Transferido')),
                             FOREIGN KEY (ID_Servico) REFERENCES Servicos(ID) ON DELETE CASCADE,
                             FOREIGN KEY (ID_Classe) REFERENCES Classes(ID) ON DELETE CASCADE
                         );
@@ -133,5 +149,7 @@ class Database():
         self.create_contract_table()
         self.create_classe_table()
         self.create_servicos_table()
+        self.create_vigencias_table()
         self.create_agenda_table()
+
 
